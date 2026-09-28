@@ -174,13 +174,17 @@ is separate from these artifact-bound verification scopes.
 
 A live gate exercises a named set of actions. Its receipt binds those actions
 to an immutable artifact and manifest.
-The retained `0.4.0` development candidate corpus binds all 37 profiles to the
-same wheel: 37 four-action [exact-read receipts](live-evidence/exact-read/), 37
+The `0.4.0` release candidate corpus binds all 37 profiles to one wheel:
+37 four-action [exact-read receipts](live-evidence/exact-read/), 37
 18-action [conformance receipts](live-evidence/conformance-bundles/) using
 `full_core/v1`, and the separate 15-action `external-shell/v1` schema-7 receipt
-on exact `3.4.2`. Each receipt records its immutable wheel digest and exact
-contract identities. This wheel predates the later Typer and DataX runtime
-fixes; a release candidate containing those fixes needs its own acceptance.
+on exact `3.4.2`. Its wheel SHA-256 is
+`5829e708757e29756de66d3912995d5ff7635a315940f2d9226e738700477299`.
+This candidate includes the Typer and DataX runtime fixes and the exact
+`2.0.0` / `2.0.1` independent-task cleanup repair. Each receipt records its
+exact contract identities and successful scenario cleanup. The
+[earlier candidate corpus](live-evidence/history/candidates/dd34c34733a5/)
+retains its original wheel binding and receipt bytes.
 
 The generic read gate covers four remote stable actions: `project.list`,
 `project.get`, `workflow.list`, and `workflow.get`. A promotion-grade generic
@@ -306,32 +310,35 @@ non-empty parameters and every other non-owned field.
 
 The [generated schema-4 task-definition cleanup profile](../../src/dsctl/generated/task_definition_cleanup_profiles.py)
 selects full-core reconciliation independently of the cleanup operation's source
-presence. Its operation targets include `2.0.0` and `2.0.1`, but neither version
-is selected for full-core private reconciliation or cross-process recovery.
-The auxiliary `2.0.1` recipe includes its exact task `OFFLINE` release before
+presence. It selects `2.0.0` and `2.0.1` for both full-core private reconciliation
+and cross-process recovery: workflow creation persists independent task
+definitions that workflow deletion leaves behind. The `2.0.0` recipe deletes
+the proven owned tasks directly. The `2.0.1` recipe requires task `OFFLINE` before
 deletion: its [delete service](https://github.com/apache/dolphinscheduler/blob/bf2197995ac835c66b44874b8658579a3da916b0/dolphinscheduler-api/src/main/java/org/apache/dolphinscheduler/api/service/impl/TaskDefinitionServiceImpl.java#L182)
 rejects `flag=YES`, while its [release controller](https://github.com/apache/dolphinscheduler/blob/bf2197995ac835c66b44874b8658579a3da916b0/dolphinscheduler-api/src/main/java/org/apache/dolphinscheduler/api/controller/TaskDefinitionController.java#L325)
 and [service](https://github.com/apache/dolphinscheduler/blob/bf2197995ac835c66b44874b8658579a3da916b0/dolphinscheduler-api/src/main/java/org/apache/dolphinscheduler/api/service/impl/TaskDefinitionServiceImpl.java#L510)
-set the task and current log `flag=NO`. This exact private source closure does
-not admit `2.0.1` to the full-core gate or alter its receipt cardinality.
-Workflow deletion leaves project-scoped task definitions on `2.0.2` through
+set the task and current log `flag=NO`.
+Workflow deletion leaves project-scoped task definitions on `2.0.0` through
 `2.0.9`, `3.0.0` through `3.0.6`, and `3.1.0` through `3.1.2`. For those
-18 full-core coordinates, the scenario uses the candidate wheel's private
+20 full-core coordinates, the scenario uses the candidate wheel's private
 Python with `-I -m` to prove the exact two owned task details before workflow
 deletion, then delete each task definition once
-and freshly reconcile zero residue before project deletion. Exact `2.0.2` and
-`2.0.3` reject task deletion while `flag=YES`, even after workflow deletion.
+and freshly reconcile a complete, empty project-wide native task inventory
+before project deletion. An empty workflow-scoped task list or `not_found`
+after project deletion does not prove native task absence. Exact `2.0.1`,
+`2.0.2`, and `2.0.3` reject task deletion while `flag=YES`, even after workflow
+deletion.
 Their cleanup recipe first proves that the owned tasks are no longer attached
 to a workflow, releases each enabled task `OFFLINE`, and verifies `flag=NO`
 before deletion. The scenario keeps its ordinary enabled task defaults; cleanup
 does not avoid this upstream boundary by creating disabled tasks.
-These two receipts account for eleven remote mutations, including two task
+These three receipts account for eleven remote mutations, including two task
 releases. The other direct-delete receipts claim nine; other full-core receipts
 claim seven and legacy receipts claim three. Private cleanup reports count
 successful releases and deletions separately, and their sum is the cleanup
 mutation count. The private prove/cleanup trace entries are auxiliary
 release-gate evidence and do not expand the named bundle's stable action set.
-Cross-process recovery on `2.0.2` through `2.0.9` accepts freshly proven zero,
+Cross-process recovery on `2.0.0` through `2.0.9` accepts freshly proven zero,
 one, or two task residues and never publishes a receipt; pagination, ownership,
 sibling state, or ambiguous release/delete drift fails closed before a subsequent
 mutation. A source-proven precondition rejection is distinct from an uncertain
@@ -350,11 +357,23 @@ workflow deletion, then requires a project-wide zero inventory afterward. It
 never calls task delete, adds no auxiliary mutation, and the receipt remains at
 seven remote mutations. Cross-process recovery on those seven versions uses
 the same proof-only strategy and also never publishes a receipt.
+
+For a new `full_core/v1` run, the runner's optional `--run-id-output-file` records
+the generated run identity before the live scenario starts. Use an existing
+parent directory owned by the current user with mode `0700`, and a distinct
+destination for every attempt, including concurrent attempts. The runner creates
+a new `0600` file, refuses
+existing destinations and evidence-path collisions, and retains the identity
+after success, test failure, or interruption. It contains only `schema_version`
+and `run_id`; it is private recovery input, not a passing receipt. Preserve it
+with the original candidate and fixture bindings. This option is mutually
+exclusive with `--recovery-run-id-file`.
+
 Recovery is an explicit mode of the same installed-wheel runner. Its
 `--recovery-run-id-file` is an owner-private strict JSON object with exact keys
 `schema_version` (currently `1`) and the original 16–32-character lowercase
 `run_id`. The requested coordinate must be one of the generated cross-process
-recovery versions (`2.0.2` through `2.0.9` or `3.1.3` through `3.1.9`) with
+recovery versions (`2.0.0` through `2.0.9` or `3.1.3` through `3.1.9`) with
 `full_core/v1`; the ordinary `--evidence` destination must not exist and remains
 absent on success. The runner snapshots the identity, re-attests the candidate
 wheel, dispatches the
@@ -1271,14 +1290,22 @@ The rule is not “skip forever”. The rule is:
 
 ## Current Coverage Snapshot
 
-The retained development candidate corpus records all 37 profiles with
-four-action exact-read schema-2 receipts and 18-action `full_core/v1` receipts,
-plus the separate 15-action `external-shell/v1` schema-7 gate on exact `3.4.2`.
-These receipts bind the same immutable candidate wheel.
-They predate the subsequent Typer and DataX runtime fixes and do not attest
-current source. A new release candidate needs its own artifact-bound acceptance.
-Historical schema-1 and schema-6 evidence also remains valid only for its
-recorded artifacts; passing a bounded gate does not promote an entire profile.
+The `0.4.0` release candidate has 75 receipts on the wheel identified
+[above](#exact-version-profile-gates): four-action exact-read schema-2 and
+18-action `full_core/v1` receipts for all 37 profiles, plus the separate
+15-action `external-shell/v1` schema-7 receipt on exact `3.4.2`. All scenario
+and external fixture cleanup was independently verified. The corrected exact
+`2.0.0` and `2.0.1` full-core scenarios verify native task inventory before
+project deletion.
+
+The earlier `dd34c34733a5…` candidate corpus remains in
+[history](live-evidence/history/candidates/dd34c34733a5/) with its original
+artifact bindings. Its `2.0.0` and `2.0.1` full-core cleanup proofs covered
+workflow-scoped task absence; independent native task inventory was outside
+those proofs. Their recorded bytes remain historical evidence with that limit.
+The new candidate's cleanup evidence applies to its own test objects and runs.
+Historical schema-1 and schema-6 receipts retain their original scopes.
+Profile support policy is maintained separately from these named gates.
 
 Broader development scenarios were verified on earlier installed candidates.
 They are separate from that release corpus and must retain their
